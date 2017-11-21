@@ -1,0 +1,48 @@
+﻿<Window x:Class="Triangles.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Triangles"
+        xmlns:viewModel="clr-namespace:Triangles.ViewModel"
+        mc:Ignorable="d"
+        Title="{Binding Title}" Height="350" Width="525"
+        DataContext="{Binding ViewModel, RelativeSource={RelativeSource Self}}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="20"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="100"/>
+        </Grid.ColumnDefinitions>
+
+        <Menu DockPanel.Dock="Top" Grid.Row="0" Grid.ColumnSpan="2">
+            <MenuItem Header="_Scene">
+                <MenuItem Header="_Open" Command="{Binding OpenFileCommand}"/>
+                <MenuItem Header="_Cube Scene" Command="{Binding OpenSceneCommand}" CommandParameter="{x:Static viewModel:MainWindowViewModel+Scenes.Cube}"/>
+                <MenuItem Header="_Many Cube Scene" Command="{Binding OpenSceneCommand}" CommandParameter="{x:Static viewModel:MainWindowViewModel+Scenes.ManyCubes}"/>
+            </MenuItem>
+        </Menu>
+
+        <Image Grid.Row="0" Grid.Column="0"
+               Source="{Binding Renderer.Bitmap}" 
+               MouseLeave="UIElement_OnMouseLeave" 
+               MouseMove="UIElement_OnMouseMove"
+               MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown" 
+               MouseLeftButtonUp="UIElement_OnMouseLeftButtonUp"
+               MouseWheel="UIElement_OnMouseWheel"/>
+
+        <StackPanel Grid.Column="1" Grid.Row="0" Margin="0,10">
+            <CheckBox IsChecked="{Binding Renderer.Settings.StaticLight}" Content="Static Light"></CheckBox>
+            <CheckBox IsChecked="{Binding Renderer.Settings.BilinearFiltering}" Content="BilinearFiltering"></CheckBox>
+            <Button Command="{Binding StartStopCommand}">Start / Stop</Button>
+        </StackPanel>
+        
+        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+            <TextBlock Text="FPS:" Margin="5,0"/>
+            <TextBlock Text="{Binding Renderer.FpsHelper.Fps, Mode=OneWay}"></TextBlock>
+        </StackPanel>
+    </Grid>
+</Window>

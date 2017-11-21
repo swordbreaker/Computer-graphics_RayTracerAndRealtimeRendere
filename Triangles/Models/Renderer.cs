@@ -4,6 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Triangles.Helpers;
@@ -17,15 +18,19 @@ namespace Triangles.Models
         private readonly int _imgHeight;
         private readonly int _imgWidth;
         private readonly float[,] _zBuffer;
+        //private readonly unsafe float* _zBuffer;
         private readonly Vector3[,] _normalBuffer;
         private readonly Vector3[,] _diffuseBuffer;
         private readonly Vector3[,] _textureBuffer;
         private readonly Vector3[,] _positionBuffer;
 
+        private readonly unsafe byte* _pixelBuffer;
+
         public delegate void UpdateDelegate(Renderer renderer);
         private readonly UpdateDelegate _updateAction;
         private readonly Matrix4x4 _projection;
         private bool _isActive = true;
+
 
         private Vector3 _lightPos;
         #endregion
@@ -55,7 +60,7 @@ namespace Triangles.Models
             _diffuseBuffer = new Vector3[_imgWidth, _imgHeight];
             _positionBuffer = new Vector3[_imgWidth, _imgHeight];
             _normalBuffer = new Vector3[_imgWidth, _imgHeight];
-            _textureBuffer = new Vector3[_imgWidth, _imgHeight]; 
+            _textureBuffer = new Vector3[_imgWidth, _imgHeight];
             _updateAction = updateAction;
             _lightPos = _scene.LightPos;
 
@@ -66,13 +71,25 @@ namespace Triangles.Models
                 0, 0, 1, 0);
 
             Bitmap = new WriteableBitmap(imgWidht, imgHeight, 8, 8, PixelFormats.Bgr24, null);
-            ZBufferBitmap = new WriteableBitmap(imgWidht, imgHeight, 8, 8, PixelFormats.Gray32Float, null);
+            ZBufferBitmap = new WriteableBitmap(imgWidht, imgHeight, 8, 8, PixelFormats.Bgr24, null);
             NormalBufferBitmap = new WriteableBitmap(imgWidht, imgHeight, 8, 8, PixelFormats.Bgr24, null);
             DiffuseBufferBitmap = new WriteableBitmap(imgWidht, imgHeight, 8, 8, PixelFormats.Bgr24, null);
             TextureBufferBitmap = new WriteableBitmap(imgWidht, imgHeight, 8, 8, PixelFormats.Bgr24, null);
             PositionBufferBitmap = new WriteableBitmap(imgWidht, imgHeight, 8, 8, PixelFormats.Bgr24, null);
 
             App.CurrentRenderer = this;
+
+            unsafe
+            {
+                _pixelBuffer = (byte*)Bitmap.BackBuffer;
+            }
+
+            //ZBufferBitmap.Lock();
+            //unsafe
+            //{
+            //    _zBuffer = (float*)ZBufferBitmap.BackBuffer;
+            //}
+            //ZBufferBitmap.Unlock();
         }
 
         public void StartRendering()
@@ -86,7 +103,7 @@ namespace Triangles.Models
                 {
                     FpsHelper.BeginOfFrame();
 
-                    var t1 = Task.Run(() => Rendering());
+                    var t1 = Task.Run(Rendering);
                     var t2 = Task.Delay(frameTime);
                     Task.WaitAll(t1, t2);
                     _updateAction?.Invoke(this);
@@ -104,19 +121,13 @@ namespace Triangles.Models
 
         public void StopRendering() => _isActive = false;
 
-        private void Rendering()
+        private async Task Rendering()
         {
-            if (Bitmap == null) return;
-
             _zBuffer.Clear(float.PositiveInfinity);
             _diffuseBuffer.Clear(Vector3.Zero);
             _textureBuffer.Clear(Vector3.Zero);
             _normalBuffer.Clear(Vector3.Zero);
             _positionBuffer.Clear(Vector3.Zero);
-
-            var pixels = new byte[_imgHeight * _imgWidth * 3];
-
-            //var triangles = _scene.Meshes.SelectMany(mesh => mesh.Triangles(Settings.ZPlane, Matrix4x4.Identity)).ToArray();
 
             var triangles = new List<(Triangle t2d, int xMin, int xMax, int yMin, int yMax)>();
 
@@ -200,70 +211,157 @@ namespace Triangles.Models
             //});
 
 
-            foreach (var tuple in triangles)
+            unsafe
             {
-                var trianlge2D = tuple.t2d;
+                var colorSize = _imgWidth * _imgHeight * 3;
+                ClearBuffer(_pixelBuffer, colorSize);
 
-                (var xMin, var yMin) = (tuple.xMin, tuple.yMin);
-                (var xMax, var yMax) = (tuple.xMax, tuple.yMax);
-
-                Parallel.For(yMin, yMax + 1, y =>
+                foreach (var tuple in triangles)
                 {
-                    var i = y * _imgWidth * 3 + xMin * 3;
-                    var AB = trianlge2D.AB;
-                    var AC = trianlge2D.AC;
+                    var trianlge2D = tuple.t2d;
 
-                    var det = 1 / (AB.X * AC.Y - AC.X * AB.Y);
-                    var ap = new Vector3(xMin, y, 0) - trianlge2D.A;
+                    (var xMin, var yMin) = (tuple.xMin, tuple.yMin);
+                    (var xMax, var yMax) = (tuple.xMax, tuple.yMax);
 
-                    var u = (AC.Y * ap.X + -AC.X * ap.Y) * det;
-                    var v = (-AB.Y * ap.X + AB.X * ap.Y) * det;
-
-                    var uAdd = AC.Y * det;
-                    var vAdd = -AB.Y * det;
-
-                    for (int x = xMin; x < xMax + 1; x++, i += 3)
+                    Parallel.For(yMin, yMax + 1, y =>
                     {
-                        if (u >= 0 && v >= 0 && (u + v) < 1)
+                        var i = y * _imgWidth * 3 + xMin * 3;
+                        var AB = trianlge2D.AB;
+                        var AC = trianlge2D.AC;
+
+                        var det = 1 / (AB.X * AC.Y - AC.X * AB.Y);
+                        var ap = new Vector3(xMin, y, 0) - trianlge2D.A;
+
+                        var u = (AC.Y * ap.X + -AC.X * ap.Y) * det;
+                        var v = (-AB.Y * ap.X + AB.X * ap.Y) * det;
+
+                        var uAdd = AC.Y * det;
+                        var vAdd = -AB.Y * det;
+
+                        for (int x = xMin; x < xMax + 1; x++, i += 3)
                         {
-                            var vs = trianlge2D.Verts;
-                            var p = VectorHelper.Lerp(vs[0], vs[1], vs[2], u, v);
-                            var w = p.W;
-                            p /= p.W;
-                            p.W = w;
-
-                            if (_zBuffer[x, y] == p.W)
+                            if (u >= 0 && v >= 0 && (u + v) < 1)
                             {
-                                var c = ColorPass(x, y).ToColor();
+                                var vs = trianlge2D.Verts;
+                                var p = VectorHelper.Lerp(vs[0], vs[1], vs[2], u, v);
+                                var w = p.W;
+                                p /= p.W;
+                                p.W = w;
 
-                                pixels[i + 0] = c.B;
-                                pixels[i + 1] = c.G;
-                                pixels[i + 2] = c.R;
+                                if(_zBuffer[x, y] == p.W)
+                                {
+                                    var c = ColorPass(x, y).ToColor();
+
+                                    _pixelBuffer[i + 0] = c.B;
+                                    _pixelBuffer[i + 1] = c.G;
+                                    _pixelBuffer[i + 2] = c.R;
+                                    //pixels[i + 0] = c.B;
+                                    //pixels[i + 1] = c.G;
+                                    //pixels[i + 2] = c.R;
+                                }
                             }
+
+                            u += uAdd;
+                            v += vAdd;
+
+                            ap.X++;
                         }
+                    });
 
-                        u += uAdd;
-                        v += vAdd;
-
-                        ap.X++;
-                    }
-                });
-
+                }
             }
 
-            App.Current?.Dispatcher.InvokeAsync(() =>
+            await App.Current?.Dispatcher.InvokeAsync(()=>
             {
                 if (Bitmap == null) return;
-                Bitmap.Lock();
-                Bitmap.WritePixels(new Int32Rect(0, 0, _imgWidth, _imgHeight), pixels, _imgWidth * 3, 0);
-                Bitmap.Unlock();
 
+                Bitmap.Lock();
+                Bitmap.AddDirtyRect(new Int32Rect(0, 0, _imgWidth, _imgHeight));
+                Bitmap.Unlock();
                 if (DrawBuffers)
                 {
-                    
-                }
+                    WriteToBitmap(ZBufferBitmap, _zBuffer
+                        .Cast<float>()
+                        .SelectMany(f => new[] { (byte)(f * 50), (byte)(f * 50), (byte)(f * 50) })
+                        .ToArray());
 
+                    WriteToBitmap(NormalBufferBitmap, _normalBuffer
+                        .Cast<Vector3>()
+                        .SelectMany(v => new [] { (byte)(v.Y * 255), (byte)(v.Z * 255), (byte)(v.X * 255), })
+                        .ToArray());
+
+                    WriteToBitmap(DiffuseBufferBitmap, _diffuseBuffer
+                        .Cast<Vector3>()
+                        .SelectMany(v => new [] { (byte)(v.Y * 255), (byte)(v.Z * 255), (byte)(v.X * 255), })
+                        .ToArray());
+
+                    WriteToBitmap(TextureBufferBitmap, _textureBuffer
+                        .Cast<Vector3>()
+                        .SelectMany(v => new [] { (byte)(v.Y * 255), (byte)(v.Z * 255), (byte)(v.X * 255), })
+                        .ToArray());
+
+                    WriteToBitmap(PositionBufferBitmap, _positionBuffer
+                        .Cast<Vector3>()
+                        .SelectMany(v => new [] { (byte)(v.Y * 51), (byte)(v.Z * 51), (byte)(v.X * 51), })
+                        .ToArray());
+                }
             });
+
+            
+            //await App.Current?.Dispatcher.InvokeAsync(() =>
+            //{
+            //    if (Bitmap == null) return;
+            //    WriteToBitmap(Bitmap, pixels);
+
+            //    if (DrawBuffers)
+            //    {
+            //        //WriteToBitmap(ZBufferBitmap, _zBuffer.Cast<float>().Select(f => (float.IsInfinity(f)?0:f)).ToArray(), 1);
+            //        WriteToBitmap(NormalBufferBitmap, _normalBuffer
+            //            .Cast<Vector3>()
+            //            .SelectMany(v => new byte[] { (byte)(v.Y * 255), (byte)(v.Z * 255), (byte)(v.X * 255), })
+            //            .ToArray());
+
+            //        WriteToBitmap(DiffuseBufferBitmap, _diffuseBuffer
+            //            .Cast<Vector3>()
+            //            .SelectMany(v => new byte[] { (byte)(v.Y * 255), (byte)(v.Z * 255), (byte)(v.X * 255), })
+            //            .ToArray());
+
+            //        WriteToBitmap(TextureBufferBitmap, _textureBuffer
+            //            .Cast<Vector3>()
+            //            .SelectMany(v => new byte[] { (byte)(v.Y * 255), (byte)(v.Z * 255), (byte)(v.X * 255), })
+            //            .ToArray());
+
+            //        WriteToBitmap(PositionBufferBitmap, _positionBuffer
+            //            .Cast<Vector3>()
+            //            .SelectMany(v => new byte[] { (byte)(v.Y * 51), (byte)(v.Z * 51), (byte)(v.X * 51), })
+            //            .ToArray());
+            //    }
+            //});
+        }
+
+        private unsafe void ClearBuffer(byte* buffer, int size)
+        {
+            var ptr = buffer;
+            for (int i = 0; i < _imgWidth * _imgHeight * 3; i++)
+            {
+                (*ptr++) = 0;
+            }
+        }
+
+        private unsafe void ClearBuffer(float* buffer, int size)
+        {
+            var ptr = buffer;
+            for (int i = 0; i < size; i++)
+            {
+                (*ptr++) = float.PositiveInfinity;
+            }
+        }
+
+        private void WriteToBitmap<T>(WriteableBitmap bmp, T[] buffer, int componets = 3)
+        {
+            bmp.Lock();
+            bmp.WritePixels(new Int32Rect(0, 0, _imgWidth, _imgHeight), buffer, _imgWidth * componets, 0);
+            bmp.Unlock();
         }
 
         private void PrePass(Triangle tria, Triangle tria3d, float u, float v, int x, int y)
@@ -295,7 +393,7 @@ namespace Triangles.Models
 
             var Is = (float)Math.Pow(Math.Max(0, -Vector3.Dot(r, Vector3.Normalize(p3D))), 50) * new Vector3(1f, 1f, 1f);
 
-            return (_scene.EnviromentLight * color) + _textureBuffer[x,y] * Id + Is;
+            return (_scene.EnviromentLight * color) + _textureBuffer[x, y] * Id + Is;
         }
 
         private Vector3 CalcColor(Triangle tria, Triangle tria3d, float u, float v, Vector4 p)

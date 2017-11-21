@@ -26,17 +26,36 @@
             </MenuItem>
         </Menu>
 
-        <Image Grid.Row="0" Grid.Column="0"
-               Source="{Binding Renderer.Bitmap}" 
-               MouseLeave="UIElement_OnMouseLeave" 
-               MouseMove="UIElement_OnMouseMove"
-               MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown" 
-               MouseLeftButtonUp="UIElement_OnMouseLeftButtonUp"
-               MouseWheel="UIElement_OnMouseWheel"/>
+        <Grid Grid.Row="0" Grid.Column="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <UniformGrid Grid.Column="0" Columns="1">
+                <Image Source="{Binding Renderer.ZBufferBitmap}"/>
+                <Image Source="{Binding Renderer.PositionBufferBitmap}"/>
+                <Image Source="{Binding Renderer.NormalBufferBitmap}"/>
+                <Image Source="{Binding Renderer.DiffuseBufferBitmap}"/>
+                <Image Source="{Binding Renderer.TextureBufferBitmap}"/>
+            </UniformGrid>
+            
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="#FF343434"/>
+            
+            <Image Grid.Column="2"
+                   Source="{Binding Renderer.Bitmap}" 
+                   MouseLeave="UIElement_OnMouseLeave" 
+                   MouseMove="UIElement_OnMouseMove"
+                   MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown" 
+                   MouseLeftButtonUp="UIElement_OnMouseLeftButtonUp"
+                   MouseWheel="UIElement_OnMouseWheel"/>
+        </Grid>
 
         <StackPanel Grid.Column="1" Grid.Row="0" Margin="0,10">
             <CheckBox IsChecked="{Binding Renderer.Settings.StaticLight}" Content="Static Light"></CheckBox>
             <CheckBox IsChecked="{Binding Renderer.Settings.BilinearFiltering}" Content="BilinearFiltering"></CheckBox>
+            <CheckBox IsChecked="{Binding Renderer.DrawBuffers}" Content="Draw Buffers"></CheckBox>
             <Button Command="{Binding StartStopCommand}">Start / Stop</Button>
         </StackPanel>
         

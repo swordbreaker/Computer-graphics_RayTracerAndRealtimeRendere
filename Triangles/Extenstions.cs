@@ -61,5 +61,13 @@ namespace Triangles
                 }
             }
         }
+
+        public static void Clear<T>(this T[] a, T value)
+        {
+            for (int x = 0; x < a.Length; x++)
+            {
+                a[x] = value;
+            }
+        }
     }
 }

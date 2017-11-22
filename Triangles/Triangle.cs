@@ -141,5 +141,17 @@ namespace Triangles
             poly.Points.Add(C.ToPoint());
             return poly;
         }
+
+        /// <summary>
+        /// [Ax, Ay, Az
+        /// Bx, By, Bz
+        /// Cx, Cy, Cz
+        /// </summary>
+        /// <returns></returns>
+
+        public float[] ToArray()
+        {
+            
+        }
     }
 }

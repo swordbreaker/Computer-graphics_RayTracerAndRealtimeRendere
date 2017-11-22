@@ -64,6 +64,7 @@
     </ApplicationDefinition>
     <Compile Include="Commands\SimpleCommand.cs" />
     <Compile Include="Extenstions.cs" />
+    <Compile Include="Helpers\ArrayMath.cs" />
     <Compile Include="Helpers\CameraHelper.cs" />
     <Compile Include="Helpers\FpsHelper.cs" />
     <Compile Include="Helpers\VectorHelper.cs" />
@@ -256,6 +257,12 @@
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CMathLib\CMathLib.vcxproj">
+      <Project>{7e9fa6e7-e907-403c-a886-9d9c3a9e19d0}</Project>
+      <Name>CMathLib</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

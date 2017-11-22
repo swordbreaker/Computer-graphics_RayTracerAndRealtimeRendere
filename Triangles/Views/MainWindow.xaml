@@ -10,6 +10,7 @@
         DataContext="{Binding ViewModel, RelativeSource={RelativeSource Self}}">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="20"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="20"/>
         </Grid.RowDefinitions>
@@ -26,19 +27,19 @@
             </MenuItem>
         </Menu>
 
-        <Grid Grid.Row="0" Grid.Column="0">
+        <Grid Grid.Row="1" Grid.Column="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
 
-            <UniformGrid Grid.Column="0" Columns="1">
-                <Image Source="{Binding Renderer.ZBufferBitmap}"/>
-                <Image Source="{Binding Renderer.PositionBufferBitmap}"/>
-                <Image Source="{Binding Renderer.NormalBufferBitmap}"/>
-                <Image Source="{Binding Renderer.DiffuseBufferBitmap}"/>
-                <Image Source="{Binding Renderer.TextureBufferBitmap}"/>
+            <UniformGrid Grid.Column="0" Columns="2">
+                <Image Source="{Binding Renderer.ZBufferBitmap}" ToolTip="Z Buffer"/>
+                <Image Source="{Binding Renderer.PositionBufferBitmap}" ToolTip="Position Buffer"/>
+                <Image Source="{Binding Renderer.NormalBufferBitmap}" ToolTip="Normal Buffer"/>
+                <Image Source="{Binding Renderer.DiffuseBufferBitmap}" ToolTip="Diffuse Buffer"/>
+                <Image Source="{Binding Renderer.TextureBufferBitmap}" ToolTip="Texture Buffer"/>
             </UniformGrid>
             
             <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="#FF343434"/>
@@ -52,14 +53,14 @@
                    MouseWheel="UIElement_OnMouseWheel"/>
         </Grid>
 
-        <StackPanel Grid.Column="1" Grid.Row="0" Margin="0,10">
+        <StackPanel Grid.Column="1" Grid.Row="1" Margin="0,10">
             <CheckBox IsChecked="{Binding Renderer.Settings.StaticLight}" Content="Static Light"></CheckBox>
             <CheckBox IsChecked="{Binding Renderer.Settings.BilinearFiltering}" Content="BilinearFiltering"></CheckBox>
             <CheckBox IsChecked="{Binding Renderer.DrawBuffers}" Content="Draw Buffers"></CheckBox>
             <Button Command="{Binding StartStopCommand}">Start / Stop</Button>
         </StackPanel>
         
-        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
             <TextBlock Text="FPS:" Margin="5,0"/>
             <TextBlock Text="{Binding Renderer.FpsHelper.Fps, Mode=OneWay}"></TextBlock>
         </StackPanel>

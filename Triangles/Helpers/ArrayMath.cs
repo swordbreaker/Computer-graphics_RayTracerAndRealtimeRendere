@@ -1,44 +1,46 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Xml.Schema;
 
 namespace Triangles.Helpers
 {
     public static class ArrayMath
     {
-        public static void Mul(float[] a, float[] b, float[] result)
+        public static void Mul(float[] a, float[] b, float[] result, int aFrom, int bFrom, int rFrom, int lenght)
         {
-            Contract.Assert(a.Length != b.Length, "a.Length != b.Length");
-            Contract.Assert(a.Length != result.Length, "a.Length != result.Length");
-
-            for (int i = 0; i < a.Length; i++)
+            int ri = rFrom;
+            int bi = bFrom;
+            for (int ai = aFrom; ai < aFrom + lenght; ai++, bi++, ri++)
             {
-                result[i] = a[i] * b[i];
+                result[ri] = a[ai] * b[bi];
             }
         }
+
+        public static void Mul(float[] a, float[] b, float[] result) => Mul(a, b, result, 0, 0, 0, a.Length);
 
         public static float[] Mul(float[] a, float[] b)
         {
             var r = new float[a.Length];
-            Mul(a, b, r);
+            Mul(a, b, r, 0, 0, 0, a.Length);
             return r;
         }
  
 
         public static float Dot(float[] a, float[] b)
         {
-            Contract.Assert(a.Length != b.Length, "a.Length != b.Length");
-
             var r = 0f;
             for (int i = 0; i < a.Length; i++)
             {
                 r += a[i] * b[i];
+            }
+            return r;
+        }
+
+        public static float Dot(float[] a, float[] b, int aFrom, int bFrom, int lenght)
+        {
+            var r = 0f;
+            var bi = bFrom;
+            for (int ai = aFrom; ai < aFrom + lenght; ai++, bi++)
+            {
+                r += a[ai] * b[bi];
             }
             return r;
         }
@@ -51,7 +53,7 @@ namespace Triangles.Helpers
                 ls += a[i] * a[i];
             }
 
-            float lenght = CMathLib.CMathF.SqrtF(ls);
+            float lenght = (float)Math.Sqrt(ls);
 
             for (int i = 0; i < a.Length; i++)
             {
@@ -59,11 +61,47 @@ namespace Triangles.Helpers
             }
         }
 
+        public static void Normalize(float[] a, int from, int lenght)
+        {
+            float ls = 0;
+            for (int i = from; i < from + lenght; i++)
+            {
+                ls += a[i] * a[i];
+            }
+
+            float l = (float)Math.Sqrt(ls);
+
+            for (int i = from; i < from + lenght; i++)
+            {
+                a[i] /= l;
+            }
+        }
+
+        public static void Add(float[] a, float[] b, float[] r, int aFrom, int bFrom, int rFrom, int lenght)
+        {
+            var bi = bFrom;
+            var ri = rFrom;
+
+            for (int ai = aFrom; ai < aFrom + lenght; ai++, bi++, ri++)
+            {
+                r[ri] = a[ai] + b[bi];
+            }
+        }
+
+        public static void Add(float[] a, float b, float[] r, int aFrom, int lenght)
+        {
+            for (int i = aFrom; i < aFrom + lenght; i++)
+            {
+                r[i] = a[i] + b;
+            }
+        }
+
+
         public static void Add(float[] a, float b, float[] r)
         {
             for (int i = 0; i < a.Length; i++)
             {
-                r[i] += b;
+                r[i] = a[i] + b;
             }
         }
 
@@ -89,26 +127,41 @@ namespace Triangles.Helpers
             return r;
         }
 
-        public static void Sub(float[] a, float[] b, float[] r)
+        public static void Sub(float[] a, float[] b, float[] r, int aStart, int bStart, int rStart, int lenght)
         {
-            for (int i = 0; i < a.Length; i++)
+            int k = rStart;
+            int bi = bStart;
+            for (int ai = aStart; ai < aStart + lenght; ai++, bi++, k++)
             {
-                r[i] = a[i] - b[i];
+                r[k] = a[ai] - b[bi];
             }
         }
 
-        public static float[] Sub(float[] a, float[] b)
+        public static void Sub(float[] a, float[] b, float[] r) => Sub(a, b, r, 0, 0, 0, a.Length);
+
+        public static float[] Sub(float[] a, float[] b, int aStart, int bStart, int lenght)
         {
             var r = new float[a.Length];
-            Sub(a, b, r);
+            Sub(a, b, r, aStart, bStart, 0, lenght);
             return r;
         }
+
+        public static float[] Sub(float[] a, float[] b) => Sub(a, b, 0, 0, a.Length);
 
         public static void Mul(float[] a, float b, float[] r)
         {
             for (int i = 0; i < a.Length; i++)
             {
                 r[i] = a[i] * b;
+            }
+        }
+
+        public static void Mul(float[] a, float b, float[] r, int aFrom, int rFrom, int length)
+        {
+            var ri = rFrom;
+            for (int ai = aFrom; ai < aFrom + length; ai++, ri++)
+            {
+                r[ri] = a[ai] * b;
             }
         }
 
@@ -159,6 +212,15 @@ namespace Triangles.Helpers
             //vec.Z = vecZ;
 
             //return vec;
+        }
+
+        public static void Clamp(float[] a, float min, float max, int from, int lengt)
+        {
+            for (int i = from; i < from + lengt; i++)
+            {
+                if (a[i] < min) a[i] = min;
+                if (a[i] > max) a[i] = max;
+            }
         }
     }
 }

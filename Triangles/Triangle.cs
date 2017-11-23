@@ -151,7 +151,21 @@ namespace Triangles
 
         public float[] ToArray()
         {
-            
+            return new float[]
+            {
+                Verts[0].X, Verts[0].Y, Verts[0].Z, Verts[0].W,
+                Verts[1].X, Verts[1].Y, Verts[1].Z, Verts[1].W,
+                Verts[2].X, Verts[2].Y, Verts[2].Z, Verts[2].W,
+                VertNormals[0].X, VertNormals[0].Y, VertNormals[0].Z,
+                VertNormals[1].X, VertNormals[1].Y, VertNormals[1].Z,
+                VertNormals[2].X, VertNormals[2].Y, VertNormals[2].Z,
+                VertUvs[0].X, VertUvs[0].Y,
+                VertUvs[1].X, VertUvs[1].Y,
+                VertUvs[2].X, VertUvs[2].Y,
+                VertColors[0].X, VertColors[0].Y, VertColors[0].Z,
+                VertColors[1].X, VertColors[1].Y, VertColors[1].Z,
+                VertColors[2].X, VertColors[2].Y, VertColors[2].Z,
+            };
         }
     }
 }

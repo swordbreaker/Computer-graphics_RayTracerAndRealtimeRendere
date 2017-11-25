@@ -129,7 +129,7 @@ namespace Triangles.ViewModel
 
         public void MouseWheel(int delta)
         {
-            _cameraHelper.Forward *= delta * 0.001f;
+            _cameraHelper.Forward -= delta * 0.001f;
         }
 
         private void OnUpdate(Renderer renderer)

@@ -61,9 +61,9 @@ namespace Triangles.Models
             var k = -1;
             for (var i = 0; i < faces.Count; i++)
             {
-                verts.Add(new Vertex(points[faces[i].VertsId[0] - 1], Vector3.One, norms[faces[i].NormsId[0] - 1], uvs[faces[i].VertsId[0] - 1]));
-                verts.Add(new Vertex(points[faces[i].VertsId[1] - 1], Vector3.One, norms[faces[i].NormsId[1] - 1], uvs[faces[i].VertsId[1] - 1]));
                 verts.Add(new Vertex(points[faces[i].VertsId[2] - 1], Vector3.One, norms[faces[i].NormsId[2] - 1], uvs[faces[i].VertsId[2] - 1]));
+                verts.Add(new Vertex(points[faces[i].VertsId[1] - 1], Vector3.One, norms[faces[i].NormsId[1] - 1], uvs[faces[i].VertsId[1] - 1]));
+                verts.Add(new Vertex(points[faces[i].VertsId[0] - 1], Vector3.One, norms[faces[i].NormsId[0] - 1], uvs[faces[i].VertsId[0] - 1]));
 
                 idx.Add((++k, ++k, ++k));
             }

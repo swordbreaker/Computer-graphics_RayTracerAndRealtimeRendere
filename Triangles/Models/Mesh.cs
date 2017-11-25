@@ -12,7 +12,7 @@ namespace Triangles.Models
         public readonly Vertex[] Vertices;
         public Matrix4x4 M = Matrix4x4.Identity;
         public List<Mesh> Children = new List<Mesh>();
-        public Action<Mesh> UpdateAction;
+        public Action<Mesh, float> UpdateAction;
         public readonly IMaterial Material;
 
         public Mesh((int a, int b, int c)[] trianlgeIdx, Vertex[] vertices, IMaterial material)
@@ -73,16 +73,16 @@ namespace Triangles.Models
             Material = material;
         }
 
-        public Vertex[] Transform(Matrix4x4 mParten)
+        public Vertex[] Transform(Matrix4x4 mParten, Matrix4x4 viewModel)
         {
-            var m = M * mParten * App.CurrentRenderer.ViewModel;
+            var m = M * mParten * viewModel;
             return Vertices.Select(v => v.Transform(m)).ToArray();
         }
 
-        public IEnumerable<Triangle> Triangles(float zPlane, Matrix4x4 m, bool doNotUpdate = false)
+        public IEnumerable<Triangle> Triangles(float zPlane, Matrix4x4 m, Matrix4x4 viewModel, float deltaTime, bool doNotUpdate = false)
         {
-            if(!doNotUpdate) UpdateAction?.Invoke(this);
-            var verts = Transform(m);
+            if(!doNotUpdate) UpdateAction?.Invoke(this, deltaTime);
+            var verts = Transform(m, viewModel);
 
             foreach (var idx in TriangleIdx)
             {
@@ -94,7 +94,7 @@ namespace Triangles.Models
 
             foreach (var chid in Children)
             {
-                foreach (var triangle in chid.Triangles(zPlane, M))
+                foreach (var triangle in chid.Triangles(zPlane, M, viewModel, deltaTime))
                 {
                     yield return triangle;
                 }

@@ -57,12 +57,16 @@
             <CheckBox IsChecked="{Binding Renderer.Settings.StaticLight}" Content="Static Light"></CheckBox>
             <CheckBox IsChecked="{Binding Renderer.Settings.BilinearFiltering}" Content="BilinearFiltering"></CheckBox>
             <CheckBox IsChecked="{Binding Renderer.DrawBuffers}" Content="Draw Buffers"></CheckBox>
+            <CheckBox IsChecked="{Binding Renderer.Settings.UseGpu}" Content="Use Gpu"></CheckBox>
             <Button Command="{Binding StartStopCommand}">Start / Stop</Button>
         </StackPanel>
         
         <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
             <TextBlock Text="FPS:" Margin="5,0"/>
-            <TextBlock Text="{Binding Renderer.FpsHelper.Fps, Mode=OneWay}"></TextBlock>
+            <TextBlock Text="{Binding Renderer.FpsHelper.Fps, Mode=OneWay}" Margin="0,0,10,0"/>
+
+            <TextBlock Text="FPS Avg:" Margin="5,0"/>
+            <TextBlock Text="{Binding Renderer.FpsHelper.FpsAverage, Mode=OneWay}"></TextBlock>
         </StackPanel>
     </Grid>
 </Window>

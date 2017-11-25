@@ -8,6 +8,6 @@ namespace Triangles
     /// </summary>
     public partial class App : Application
     {
-        public static Renderer CurrentRenderer;
+        //public static Renderer CurrentRenderer;
     }
 }

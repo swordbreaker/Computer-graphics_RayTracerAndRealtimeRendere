@@ -11,6 +11,7 @@ namespace Triangles.Models
         private float _zPlane;
         private float _fps;
         private bool _staticLight;
+        private bool _useGpu;
 
         public bool BilinearFiltering
         {
@@ -63,6 +64,17 @@ namespace Triangles.Models
             {
                 if (value == _staticLight) return;
                 _staticLight = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool UseGpu
+        {
+            get => _useGpu;
+            set
+            {
+                if (value == _useGpu) return;
+                _useGpu = value;
                 OnPropertyChanged();
             }
         }

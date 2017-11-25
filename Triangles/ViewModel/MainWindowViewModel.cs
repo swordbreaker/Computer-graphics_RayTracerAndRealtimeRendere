@@ -50,7 +50,7 @@ namespace Triangles.ViewModel
             Settings = new Settings()
             {
                 Specular = true,
-                Fps = 60,
+                Fps = int.MaxValue,
                 ZPlane = 0.1f,
                 BilinearFiltering = true
             };

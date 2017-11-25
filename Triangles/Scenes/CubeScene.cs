@@ -67,11 +67,11 @@ namespace Triangles.Scenes
         {
             var cube = new Mesh(_triangleIdx, _verts, new TextureMaterial((Bitmap)Image.FromFile(@"Textures/checkerboard.jpg"), TextureMaterial.TextureMode.Repeate));
 
-            cube.UpdateAction += mesh =>
+            cube.UpdateAction += (mesh, deltaTime) =>
             {
                 var roation = Matrix4x4.CreateFromYawPitchRoll(_alpha, _alpha, 0);
                 mesh.M = roation * _translation;
-                _alpha += 0.5f * App.CurrentRenderer.FpsHelper.DeltaTime;
+                _alpha += 0.5f * deltaTime;
             };
 
             Meshes = new[] { cube };

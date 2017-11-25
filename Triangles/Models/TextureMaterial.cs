@@ -50,7 +50,7 @@ namespace Triangles.Models
             }
         }
 
-        public Vector3 GetColor(float u, float v)
+        public Vector3 GetColor(float u, float v, bool bilinearFiltering)
         {
             switch (_mode)
             {
@@ -66,7 +66,7 @@ namespace Triangles.Models
                     throw new ArgumentOutOfRangeException();
             }
 
-            if (App.CurrentRenderer.Settings.BilinearFiltering)
+            if (bilinearFiltering)
             {
                 var x = u * (_width - 1);
                 var y = v * (_height - 1);

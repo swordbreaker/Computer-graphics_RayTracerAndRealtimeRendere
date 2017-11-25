@@ -12,7 +12,7 @@ namespace Triangles.Models
             _color = color.ToVector3();
         }
 
-        public Vector3 GetColor(float u, float v)
+        public Vector3 GetColor(float u, float v, bool bilinearFiltering)
         {
             return _color;
         }

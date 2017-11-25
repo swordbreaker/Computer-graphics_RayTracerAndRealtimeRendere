@@ -18,14 +18,6 @@ namespace Triangles
         public readonly Vector3 AC;
         public readonly Vector3 Normal;
 
-        public Vector3 AColor => VertColors[0];
-        public Vector3 BColor => VertColors[1];
-        public Vector3 CColor => VertColors[2];
-
-        public Vector3 ANormal => VertNormals[0];
-        public Vector3 BNormal => VertNormals[1];
-        public Vector3 CNormal => VertNormals[2];
-
         public readonly Vector4[] Verts;
         public readonly Vector3[] VertColors;
         public readonly Vector3[] VertNormals;
@@ -141,13 +133,6 @@ namespace Triangles
             poly.Points.Add(C.ToPoint());
             return poly;
         }
-
-        /// <summary>
-        /// [Ax, Ay, Az
-        /// Bx, By, Bz
-        /// Cx, Cy, Cz
-        /// </summary>
-        /// <returns></returns>
 
         public float[] ToArray()
         {

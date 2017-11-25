@@ -77,5 +77,12 @@ namespace Triangles
                 a[x] = value;
             }
         }
+
+        public static T[] Copy<T>(this T[] a)
+        {
+            var b = new T[a.Length];
+            Array.Copy(a, b, a.Length);
+            return b;
+        }
     }
 }

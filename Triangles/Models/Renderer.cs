@@ -16,16 +16,13 @@ namespace Triangles.Models
         private readonly IScene _scene;
         private readonly int _imgHeight;
         private readonly int _imgWidth;
-        [GpuParam]
+
         private readonly float[] _zBuffer;
         //private readonly unsafe float* _zBuffer;
-        [GpuParam]
+
         private readonly float[] _normalBuffer;
-        [GpuParam]
         private readonly float[] _diffuseBuffer;
-        [GpuParam]
         private readonly float[] _textureBuffer;
-        [GpuParam]
         private readonly float[] _positionBuffer;
 
         private readonly byte[] _zBufferImg;
@@ -36,10 +33,20 @@ namespace Triangles.Models
         private readonly byte[] _textureBufferImg;
         private readonly byte[] _positionBufferImg;
 
+        [GpuParam]
+        private readonly  float[] _l;
+        [GpuParam]
+        private readonly float[] _Id;
+        [GpuParam]
+        private readonly float[] _r;
+
+        [GpuParam]
+        private readonly float[] _enviromentLight;
+
         public delegate void UpdateDelegate(Renderer renderer);
         private readonly UpdateDelegate _updateAction;
         private readonly Matrix4x4 _projection;
-        private bool _isActive = true;
+        private volatile bool _isActive = true;
 
         private Vector3 _lightPos;
         [GpuParam]
@@ -56,7 +63,7 @@ namespace Triangles.Models
 
         public FpsHelper FpsHelper { get; } = new FpsHelper();
         public Settings Settings { get; set; }
-        public Matrix4x4 ViewModel { get; set; } = Matrix4x4.Identity;
+        public Matrix4x4 ViewModel = Matrix4x4.Identity;
         public bool IsActive => _isActive;
         public bool DrawBuffers { get; set; }
         #endregion
@@ -98,20 +105,24 @@ namespace Triangles.Models
             TextureBufferBitmap = new WriteableBitmap(imgWidht, imgHeight, 8, 8, PixelFormats.Rgb24, null);
             PositionBufferBitmap = new WriteableBitmap(imgWidht, imgHeight, 8, 8, PixelFormats.Rgb24, null);
 
-            App.CurrentRenderer = this;
-
             _pixelBufferImg = new byte[_imgWidth * _imgHeight * 3];
             _zBufferImg = new byte[_imgWidth * _imgHeight];
             _normalBufferImg = new byte[_imgWidth * _imgHeight * 3];
             _diffuseBufferImg = new byte[_imgWidth * _imgHeight * 3];
             _textureBufferImg = new byte[_imgWidth * _imgHeight * 3];
             _positionBufferImg = new byte[_imgWidth * _imgHeight * 3];
+
+            _l = new float[_imgWidth * _imgHeight * 3];
+            _Id = new float[_imgWidth * _imgHeight * 3];
+            _r = new float[_imgWidth * _imgHeight * 3];
+
+            _enviromentLight = new[] { _scene.EnviromentLight.X, _scene.EnviromentLight.Y, _scene.EnviromentLight.Z };
         }
 
         public void StartRendering()
         {
             _isActive = true;
-            var frameTime = TimeSpan.FromSeconds(1 / Settings.Fps);
+            var frameTime = TimeSpan.FromSeconds(1d / Settings.Fps);
 
             Task.Run(() =>
             {
@@ -144,10 +155,33 @@ namespace Triangles.Models
 
         public void StopRendering() => _isActive = false;
 
+        private Task _bufferTask = Task.Run(() => { });
+        private Task _mergeTask = Task.Run(() => { });
+
         private void Rendering()
         {
-            CalculateBuffer();
-            MergeBuffersCPU();
+            _bufferTask = Task.Run(() => CalculateBuffer());
+            Task.WaitAll(_bufferTask, _mergeTask);
+
+            if (Settings.UseGpu)
+            {
+                var color = Gpu.Default.Allocate(_diffuseBuffer);
+                var normal = Gpu.Default.Allocate(_normalBuffer);
+                var p3D = Gpu.Default.Allocate(_positionBuffer);
+                var tex = Gpu.Default.Allocate(_textureBuffer);
+
+                _mergeTask = Task.Run(() => MergeBuffersGPU(color, normal, p3D, tex));
+            }
+            else
+            {
+                var color = _diffuseBuffer.Copy();
+                var normal = _normalBuffer.Copy();
+                var p3D = _positionBuffer.Copy();
+                var tex = _textureBuffer.Copy();
+                var zBuffer = _zBuffer.Copy();
+
+                _mergeTask = Task.Run(() => MergeBuffersCPU(color, normal, p3D, tex, zBuffer));
+            }
         }
 
         private async void CalculateBuffer()
@@ -169,7 +203,7 @@ namespace Triangles.Models
 
             foreach (var mesh in _scene.Meshes)
             {
-                foreach (var triangle in mesh.Triangles(Settings.ZPlane, Matrix4x4.Identity))
+                foreach (var triangle in mesh.Triangles(Settings.ZPlane, Matrix4x4.Identity, ViewModel, FpsHelper.DeltaTime))
                 {
                     var trianlge2D = triangle.TransformNormalized(_projection);
                     if (trianlge2D.IsClockWise) continue;
@@ -240,33 +274,22 @@ namespace Triangles.Models
                 }
             }
 
-            if(App.Current?.Dispatcher == null) return;
+            if (!DrawBuffers) return;
+            if (App.Current?.Dispatcher == null) return;
             await App.Current?.Dispatcher.InvokeAsync(() =>
             {
-                if (DrawBuffers)
-                {
-                    if (NormalBufferBitmap == null) return;
-                    WriteToBitmap(NormalBufferBitmap, _normalBufferImg);
-                    WriteToBitmap(DiffuseBufferBitmap, _diffuseBufferImg);
-                    WriteToBitmap(PositionBufferBitmap, _positionBufferImg);
-                    WriteToBitmap(TextureBufferBitmap, _textureBufferImg);
-                    WriteToBitmap(ZBufferBitmap, _zBufferImg, 1);
-                }
+                if (NormalBufferBitmap == null) return;
+                WriteToBitmap(NormalBufferBitmap, _normalBufferImg);
+                WriteToBitmap(DiffuseBufferBitmap, _diffuseBufferImg);
+                WriteToBitmap(PositionBufferBitmap, _positionBufferImg);
+                WriteToBitmap(TextureBufferBitmap, _textureBufferImg);
+                WriteToBitmap(ZBufferBitmap, _zBufferImg, 1);
             });
         }
 
-        private async void MergeBuffersCPU()
+        private async void MergeBuffersCPU(float[] color, float[] normal, float[] p3D, float[] tex, float[] zBuffer)
         {
             _pixelBufferImg.Clear((byte)0);
-            var enviromentLigth = new[] { _scene.EnviromentLight.X, _scene.EnviromentLight.Y, _scene.EnviromentLight.Z };
-
-            var color = _diffuseBuffer;
-            var normal = _normalBuffer;
-            var p3D = _positionBuffer;
-            var tex = _textureBuffer;
-            var l = new float[_imgWidth * _imgHeight * 3];
-            var Id = new float[_imgWidth * _imgHeight * 3];
-            var r = new float[_imgWidth * _imgHeight * 3];
 
             Parallel.For(0, _imgHeight, y =>
             {
@@ -275,9 +298,9 @@ namespace Triangles.Models
 
                 for (int x = 0; x < _imgWidth; x++, i += 3, k++)
                 {
-                    if (float.IsInfinity(_zBuffer[k])) continue;
+                    if (float.IsInfinity(zBuffer[k])) continue;
 
-                    ColorPass(enviromentLigth, color, normal, p3D, tex, l, Id, r, i);
+                    ColorPass(_enviromentLight, color, normal, p3D, tex, i);
 
                     ArrayMath.Clamp(color, 0, 255, i, 3);
 
@@ -294,28 +317,15 @@ namespace Triangles.Models
             });
         }
 
-        private async void MergeBuffersGPU()
+        private async void MergeBuffersGPU(float[] color, float[] normal, float[] p3D, float[] tex)
         {
             _pixelBufferImg.Clear((byte)0);
-            var enviromentLigth = new[] { _scene.EnviromentLight.X, _scene.EnviromentLight.Y, _scene.EnviromentLight.Z };
 
-            //color, normal, p3D, tex, l, Id, r, r_dot_p3D
-            var color = Gpu.Default.Allocate(_diffuseBuffer);
-            var normal = Gpu.Default.Allocate(_normalBuffer);
-            var p3D = Gpu.Default.Allocate(_positionBuffer);
-            var tex = Gpu.Default.Allocate(_textureBuffer);
-            var l = new float[_imgWidth * _imgHeight * 3];
-            var Id = new float[_imgWidth * _imgHeight * 3];
-            var r = new float[_imgWidth * _imgHeight * 3];
-
-            var widht = _imgWidth;
             Gpu.Default.For(0, _imgHeight * _imgWidth, i =>
             {
                 var k = i * 3;
-                int y = i / widht;
-                int x = i % widht;
 
-                ColorPass(enviromentLigth, color, normal, p3D, tex, l, Id, r, k);
+                ColorPass(_enviromentLight, color, normal, p3D, tex, k);
 
                 ArrayMath.Clamp(color, 0, 255, k, 3);
 
@@ -324,54 +334,16 @@ namespace Triangles.Models
                 _pixelBufferImg[k + 2] = (byte)(color[k + 2]);
             });
 
-            //Parallel.For(0, _imgHeight, y =>
-            //Gpu.Default.For(0, _imgHeight, y =>
-            //{
-            //    int i = y * widht * 3;
-            //    for (int x = 0; x < widht; x++, i += 3)
-            //    {
-            //        if (float.IsInfinity(_zBuffer[x, y])) continue;
-
-            //        ColorPass(x, y, enviromentLigth, color, normal, p3D, tex, l, Id, r, i);
-
-            //        ArrayMath.Clamp(color, 0, 255, i, 3);
-
-            //        _pixelBufferImg[i + 0] = (byte)(color[i + 0]);
-            //        _pixelBufferImg[i + 1] = (byte)(color[i + 1]);
-            //        _pixelBufferImg[i + 2] = (byte)(color[i + 2]);
-            //    }
-            //});
+            Gpu.Free(color);
+            Gpu.Free(normal);
+            Gpu.Free(p3D);
+            Gpu.Free(tex);
 
             await App.Current?.Dispatcher.InvokeAsync(() =>
             {
                 if (Bitmap == null) return;
                 WriteToBitmap(Bitmap, _pixelBufferImg);
             });
-        }
-
-        private unsafe void ClearBuffer(byte* buffer, int size)
-        {
-            var ptr = buffer;
-            for (int i = 0; i < size; i++)
-            {
-                (*ptr++) = 0;
-            }
-        }
-
-        private unsafe void ClearBuffer(float* buffer, int size)
-        {
-            var ptr = buffer;
-            for (int i = 0; i < size; i++)
-            {
-                (*ptr++) = float.PositiveInfinity;
-            }
-        }
-
-        private void AddDirtyRect(WriteableBitmap bmp)
-        {
-            bmp.Lock();
-            bmp.AddDirtyRect(new Int32Rect(0, 0, _imgWidth, _imgHeight));
-            bmp.Unlock();
         }
 
         private void WriteToBitmap<T>(WriteableBitmap bmp, T[] buffer, int componets = 3)
@@ -384,7 +356,7 @@ namespace Triangles.Models
         private void PrePass(Triangle tria, Triangle tria3D, float u, float v, int i)
         {
             var wAndUv = (tria.Verts[0].W, tria.Verts[1].W, tria.Verts[2].W, u, v);
-            var normal = Vector3.Normalize(VectorHelper.LerpHomogeneous(tria3D.ANormal, tria3D.BNormal, tria3D.CNormal, wAndUv).ToVector3());
+            var normal = Vector3.Normalize(VectorHelper.LerpHomogeneous(tria3D.VertNormals[0], tria3D.VertNormals[1], tria3D.VertNormals[2], wAndUv).ToVector3());
             _normalBuffer[i + 0] = normal.X;
             _normalBuffer[i + 1] = normal.Y;
             _normalBuffer[i + 2] = normal.Z;
@@ -393,8 +365,8 @@ namespace Triangles.Models
             _positionBuffer[i + 1] = p3D.Y;
             _positionBuffer[i + 2] = p3D.Z;
             var uv = VectorHelper.LerpHomogeneous(tria.VertUvs[0], tria.VertUvs[1], tria.VertUvs[2], wAndUv);
-            var matColor = tria.Material.GetColor(uv.X, uv.Y);
-            var color = VectorHelper.LerpHomogeneous(tria.AColor, tria3D.BColor, tria3D.CColor, wAndUv).ToVector3();
+            var matColor = tria.Material.GetColor(uv.X, uv.Y, Settings.BilinearFiltering);
+            var color = VectorHelper.LerpHomogeneous(tria.VertColors[0], tria3D.VertColors[1], tria3D.VertColors[2], wAndUv).ToVector3();
             _diffuseBuffer[i + 0] = color.X;
             _diffuseBuffer[i + 1] = color.Y;
             _diffuseBuffer[i + 2] = color.Z;
@@ -403,28 +375,27 @@ namespace Triangles.Models
             _textureBuffer[i + 2] = matColor.Z;
         }
 
-        private void ColorPass(float[] eniromentLight, float[] color, float[] normal, float[] p3D, float[] tex, float[] l, float[] Id, float[] r, int from)
+        private void ColorPass(float[] eniromentLight, float[] color, float[] normal, float[] p3D, float[] tex, int from)
         {
-            ArrayMath.Sub(_lightPosArray, p3D, l, 0, from, from, 3);
-            ArrayMath.Normalize(l, from, 3);
+            ArrayMath.Sub(_lightPosArray, p3D, _l, 0, from, from, 3);
+            ArrayMath.Normalize(_l, from, 3);
 
-            var dotNl = ArrayMath.Dot(normal, l, from, from, 3);
+            var dotNl = ArrayMath.Dot(normal, _l, from, from, 3);
 
-            ArrayMath.Mul(color, Math.Max(0f, dotNl), Id, from, from, 3);
+            ArrayMath.Mul(color, Math.Max(0f, dotNl), _Id, from, from, 3);
 
-            ArrayMath.Mul(normal, dotNl * 2, r, from, from, 3);
-            ArrayMath.Sub(r, l, r, from, from, from, 3);
-            ArrayMath.Normalize(r, from, 3);
+            ArrayMath.Mul(normal, dotNl * 2, _r, from, from, 3);
+            ArrayMath.Sub(_r, _l, _r, from, from, from, 3);
+            ArrayMath.Normalize(_r, from, 3);
             ArrayMath.Normalize(p3D, from, 3);
 
-            var rDotP3D = -ArrayMath.Dot(r, p3D, from, from, 3);
+            var rDotP3D = -ArrayMath.Dot(_r, p3D, from, from, 3);
 
             var max = Math.Max(0, rDotP3D);
             var Is = DeviceFunction.Pow(max, 50);
-            //var Is = 0;
-            
+          
             ArrayMath.Mul(eniromentLight, color, color, 0, from, from, 3);
-            ArrayMath.Mul(tex, Id, tex, from, from, from, 3);
+            ArrayMath.Mul(tex, _Id, tex, from, from, from, 3);
 
             ArrayMath.Add(color, tex, color, from, from, from, 3);
 
@@ -432,25 +403,25 @@ namespace Triangles.Models
             ArrayMath.Mul(color, 255, color, from, from, 3);
         }
 
-        private Vector3 CalcColor(Triangle tria, Triangle tria3d, float u, float v, Vector4 p)
-        {
-            var wAndUv = (tria.Verts[0].W, tria.Verts[1].W, tria.Verts[2].W, u, v);
+        //private Vector3 CalcColor(Triangle tria, Triangle tria3d, float u, float v, Vector4 p)
+        //{
+        //    var wAndUv = (tria.Verts[0].W, tria.Verts[1].W, tria.Verts[2].W, u, v);
 
-            var color = VectorHelper.LerpHomogeneous(tria.AColor, tria3d.BColor, tria3d.CColor, wAndUv).ToVector3();
-            var uv = VectorHelper.LerpHomogeneous(tria.VertUvs[0], tria.VertUvs[1], tria.VertUvs[2], wAndUv);
-            var matColor = tria.Material.GetColor(uv.X, uv.Y);
-            var normal = Vector3.Normalize(VectorHelper.LerpHomogeneous(tria3d.ANormal, tria3d.BNormal, tria3d.CNormal, wAndUv).ToVector3());
-            var p3D = VectorHelper.LerpHomogeneous(tria3d.A, tria3d.B, tria3d.C, wAndUv).ToVector3();
-            var l = Vector3.Normalize(_lightPos - p3D);
-            var dotNl = Vector3.Dot(normal, l);
-            var Id = Math.Max(0f, dotNl) * color;
+        //    var color = VectorHelper.LerpHomogeneous(tria.AColor, tria3d.BColor, tria3d.CColor, wAndUv).ToVector3();
+        //    var uv = VectorHelper.LerpHomogeneous(tria.VertUvs[0], tria.VertUvs[1], tria.VertUvs[2], wAndUv);
+        //    var matColor = tria.Material.GetColor(uv.X, uv.Y);
+        //    var normal = Vector3.Normalize(VectorHelper.LerpHomogeneous(tria3d.ANormal, tria3d.BNormal, tria3d.CNormal, wAndUv).ToVector3());
+        //    var p3D = VectorHelper.LerpHomogeneous(tria3d.A, tria3d.B, tria3d.C, wAndUv).ToVector3();
+        //    var l = Vector3.Normalize(_lightPos - p3D);
+        //    var dotNl = Vector3.Dot(normal, l);
+        //    var Id = Math.Max(0f, dotNl) * color;
 
-            var r = 2 * dotNl * normal - l;
-            r = Vector3.Normalize(r);
+        //    var r = 2 * dotNl * normal - l;
+        //    r = Vector3.Normalize(r);
 
-            var Is = (float)Math.Pow(Math.Max(0, -Vector3.Dot(r, Vector3.Normalize(p3D))), 50) * new Vector3(1f, 1f, 1f);
+        //    var Is = (float)Math.Pow(Math.Max(0, -Vector3.Dot(r, Vector3.Normalize(p3D))), 50) * new Vector3(1f, 1f, 1f);
 
-            return (_scene.EnviromentLight * color) + matColor * Id + Is;
-        }
+        //    return (_scene.EnviromentLight * color) + matColor * Id + Is;
+        //}
     }
 }

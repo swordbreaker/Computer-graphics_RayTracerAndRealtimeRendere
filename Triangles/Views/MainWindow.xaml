@@ -55,6 +55,7 @@
 
         <StackPanel Grid.Column="1" Grid.Row="1" Margin="0,10">
             <CheckBox IsChecked="{Binding Renderer.Settings.StaticLight}" Content="Static Light"></CheckBox>
+            <CheckBox IsChecked="{Binding Renderer.Settings.Specular}" Content="Specular Lighting"></CheckBox>
             <CheckBox IsChecked="{Binding Renderer.Settings.BilinearFiltering}" Content="BilinearFiltering"></CheckBox>
             <CheckBox IsChecked="{Binding Renderer.DrawBuffers}" Content="Draw Buffers"></CheckBox>
             <CheckBox IsChecked="{Binding Renderer.Settings.UseGpu}" Content="Use Gpu"></CheckBox>

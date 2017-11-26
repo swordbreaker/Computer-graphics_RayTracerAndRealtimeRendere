@@ -9,7 +9,6 @@ namespace Triangles.Models
         private volatile bool _bilinearFiltering;
         private bool _specular;
         private float _zPlane;
-        private float _fps;
         private bool _staticLight;
         private bool _useGpu;
 
@@ -42,17 +41,6 @@ namespace Triangles.Models
             {
                 if (value.Equals(_zPlane)) return;
                 _zPlane = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public float Fps
-        {
-            get => _fps;
-            set
-            {
-                if (value.Equals(_fps)) return;
-                _fps = value;
                 OnPropertyChanged();
             }
         }

@@ -63,16 +63,19 @@ namespace Triangles.Scenes
 
         private readonly Matrix4x4 _translation = Matrix4x4.CreateTranslation(0, 0, 0);
 
-        public CubeScene()
+        public CubeScene(bool rotate)
         {
             var cube = new Mesh(_triangleIdx, _verts, new TextureMaterial((Bitmap)Image.FromFile(@"Textures/checkerboard.jpg"), TextureMaterial.TextureMode.Repeate));
 
-            cube.UpdateAction += (mesh, deltaTime) =>
+            if (rotate)
             {
-                var roation = Matrix4x4.CreateFromYawPitchRoll(_alpha, _alpha, 0);
-                mesh.M = roation * _translation;
-                _alpha += 0.5f * deltaTime;
-            };
+                cube.UpdateAction += (mesh, deltaTime) =>
+                {
+                    var roation = Matrix4x4.CreateFromYawPitchRoll(_alpha, _alpha, 0);
+                    mesh.M = roation * _translation;
+                    _alpha += 0.5f * deltaTime;
+                };
+            }
 
             Meshes = new[] { cube };
         }

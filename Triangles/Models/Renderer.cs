@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using System.Windows;
@@ -65,6 +66,14 @@ namespace Triangles.Models
         public bool IsActive => _isActive;
         public bool DrawBuffers { get; set; }
 
+
+        private readonly int _triangleCount;
+
+        private readonly float[] _triaVerts;
+        private readonly float[] _triaNormals;
+        private readonly float[] _triaColors;
+        private readonly float[] _triaUvs;
+
         #endregion
 
         /// <summary>
@@ -117,6 +126,12 @@ namespace Triangles.Models
             _r = new float[_imgWidth * _imgHeight * 3];
 
             _enviromentLight = new[] {_scene.EnviromentLight.X, _scene.EnviromentLight.Y, _scene.EnviromentLight.Z};
+
+            _triangleCount = _scene.Meshes.Sum(mesh => mesh.TriangleCount());
+            _triaVerts = new float[_triangleCount * 4];
+            _triaNormals = new float[_triangleCount * 3];
+            _triaColors = new float[_triangleCount * 3];
+            _triaUvs = new float[_triangleCount * 2];
         }
 
         public void StartRendering()

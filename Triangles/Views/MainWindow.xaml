@@ -23,6 +23,7 @@
             <MenuItem Header="_Scene">
                 <MenuItem Header="_Open" Command="{Binding OpenFileCommand}"/>
                 <MenuItem Header="_Cube Scene" Command="{Binding OpenSceneCommand}" CommandParameter="{x:Static viewModel:MainWindowViewModel+Scenes.Cube}"/>
+                <MenuItem Header="_Cube Scene Not Rotating" Command="{Binding OpenSceneCommand}" CommandParameter="{x:Static viewModel:MainWindowViewModel+Scenes.CubeNotRota}"/>
                 <MenuItem Header="_Many Cube Scene" Command="{Binding OpenSceneCommand}" CommandParameter="{x:Static viewModel:MainWindowViewModel+Scenes.ManyCubes}"/>
             </MenuItem>
         </Menu>

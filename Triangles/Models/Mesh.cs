@@ -101,6 +101,85 @@ namespace Triangles.Models
             }
         }
 
+        public int TriangleCount()
+        {
+            return TriangleIdx.Length + Children.Sum(chid => chid.TriangleCount());
+        }
+
+        public IEnumerable<int> FillArray(Matrix4x4 m, Matrix4x4 viewModel, float deltaTime, int start, float[] verts, float[] colors, float[] normals, float[] uvs)
+        {
+            UpdateAction?.Invoke(this, deltaTime);
+            var vs = Transform(m, viewModel);
+
+            var k = start;
+            var j = start;
+            var l = start;
+            for (var i = start; i < TriangleIdx.Length; i++, k += 9, j += 12, l += 6)
+            {
+                var idx = TriangleIdx[i];
+
+                verts[j + 0] = vs[idx.a].Pos.X;
+                verts[j + 1] = vs[idx.a].Pos.Y;
+                verts[j + 0] = vs[idx.a].Pos.Z;
+                verts[j + 3] = 0;
+
+                verts[j + 4] = vs[idx.b].Pos.X;
+                verts[j + 5] = vs[idx.b].Pos.Y;
+                verts[j + 6] = vs[idx.b].Pos.Z;
+                verts[j + 7] = 0;
+
+                verts[j +  8] = vs[idx.c].Pos.X;
+                verts[j +  9] = vs[idx.c].Pos.Y;
+                verts[j + 10] = vs[idx.c].Pos.Z;
+                verts[j + 11] = 0;
+
+                colors[k + 0] = vs[idx.a].Color.X;
+                colors[k + 1] = vs[idx.a].Color.Y;
+                colors[k + 2] = vs[idx.a].Color.Z;
+
+                colors[k + 3] = vs[idx.b].Color.X;
+                colors[k + 4] = vs[idx.b].Color.Y;
+                colors[k + 5] = vs[idx.b].Color.Z;
+
+                colors[k + 6] = vs[idx.c].Color.X;
+                colors[k + 7] = vs[idx.c].Color.Y;
+                colors[k + 8] = vs[idx.c].Color.Z;
+
+                normals[k + 0] = vs[idx.a].Normal.X;
+                normals[k + 1] = vs[idx.a].Normal.Y;
+                normals[k + 2] = vs[idx.a].Normal.Z;
+
+                normals[k + 3] = vs[idx.b].Normal.X;
+                normals[k + 4] = vs[idx.b].Normal.Y;
+                normals[k + 5] = vs[idx.b].Normal.Z;
+
+                normals[k + 6] = vs[idx.c].Normal.X;
+                normals[k + 7] = vs[idx.c].Normal.Y;
+                normals[k + 8] = vs[idx.c].Normal.Z;
+
+                uvs[l + 0] = vs[idx.a].Uv.X;
+                uvs[l + 1] = vs[idx.a].Uv.Y;
+
+                uvs[l + 2] = vs[idx.b].Uv.X;
+                uvs[l + 3] = vs[idx.b].Uv.Y;
+
+                uvs[l + 4] = vs[idx.c].Uv.X;
+                uvs[l + 5] = vs[idx.c].Uv.Y;
+
+                yield return start + i;
+            }
+
+            int index = start + TriangleIdx.Length;
+            foreach (var chid in Children)
+            {
+                foreach (var i in chid.FillArray(m, viewModel, deltaTime, index, verts, colors, normals, uvs))
+                {
+                    index = i;
+                    yield return i;
+                }
+            }
+        }
+
         private IEnumerable<Triangle> ZClipping((int a, int b, int c) idx, float zPlane, Vertex[] verts)
         {
             var points = new[] { verts[idx.a], verts[idx.b], verts[idx.c] };

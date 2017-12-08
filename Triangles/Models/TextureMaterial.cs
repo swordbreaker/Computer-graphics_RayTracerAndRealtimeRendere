@@ -73,8 +73,8 @@ namespace Triangles.Models
 
                 var (ix, iy) = ((int) x, (int) y);
 
-                var tv = x - ix;
-                var tu = y - iy;
+                var tu = x - ix;
+                var tv = y - iy;
 
                 var c1 = Vector3.Lerp(_data[ix, iy], _data[ix, iy + 1], tv);
                 var c2 = Vector3.Lerp(_data[ix + 1, iy], _data[ix + 1, iy + 1], tv);

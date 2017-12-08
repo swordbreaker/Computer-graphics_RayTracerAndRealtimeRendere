@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+﻿
+using System;
+using System.Numerics;
+using System.Windows.Media.Effects;
 
 namespace Triangles.Helpers
 {

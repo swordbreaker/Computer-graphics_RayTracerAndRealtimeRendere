@@ -15,7 +15,7 @@ namespace Triangles.ViewModel
     {
         public enum Scenes
         {
-            Cube, ManyCubes
+            Cube, CubeNotRota, ManyCubes
         }
 
         private readonly CameraHelper _cameraHelper = new CameraHelper(radius:5f);
@@ -38,10 +38,10 @@ namespace Triangles.ViewModel
             }
         }
 
-        private const int W = 400;
-        private const int H = 400;
+        private const int W = 500;
+        private const int H = 500;
 
-        public MainWindowViewModel() : this(new CubeScene())
+        public MainWindowViewModel() : this(new CubeScene(true))
         {
         }
 
@@ -74,13 +74,16 @@ namespace Triangles.ViewModel
             switch ((Scenes)o)
             {
                 case Scenes.Cube:
-                    scene = new CubeScene();
+                    scene = new CubeScene(true);
                     break;
                 case Scenes.ManyCubes:
                     scene = new ManyCubesScene();
                     break;
+                case Scenes.CubeNotRota:
+                    scene = new CubeScene(false);
+                    break;
                 default:
-                    scene = new CubeScene();
+                    scene = new CubeScene(true);
                     break;
             }
 

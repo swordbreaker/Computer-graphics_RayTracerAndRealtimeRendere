@@ -41,6 +41,9 @@ namespace Triangles.ViewModel
         private const int W = 500;
         private const int H = 500;
 
+        public int Width => W;
+        public int Height => H;
+
         public MainWindowViewModel() : this(new CubeScene(true))
         {
         }

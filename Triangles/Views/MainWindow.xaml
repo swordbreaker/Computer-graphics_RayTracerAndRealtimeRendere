@@ -42,9 +42,9 @@
                 <Image Source="{Binding Renderer.DiffuseBufferBitmap}" ToolTip="Diffuse Buffer"/>
                 <Image Source="{Binding Renderer.TextureBufferBitmap}" ToolTip="Texture Buffer"/>
             </UniformGrid>
-            
+
             <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="#FF343434"/>
-            
+
             <Image Grid.Column="2"
                    Source="{Binding Renderer.Bitmap}" 
                    MouseLeave="UIElement_OnMouseLeave" 
@@ -61,8 +61,20 @@
             <CheckBox IsChecked="{Binding Renderer.DrawBuffers}" Content="Draw Buffers"></CheckBox>
             <CheckBox IsChecked="{Binding Renderer.Settings.UseGpu}" Content="Use Gpu"></CheckBox>
             <Button Command="{Binding StartStopCommand}">Start / Stop</Button>
+
+            <UniformGrid Columns="2">
+                <TextBlock>Z Plane</TextBlock>
+                <TextBox Text="{Binding Settings.ZPlane}"/>
+            </UniformGrid>
+
+            <UniformGrid Columns="2">
+                <TextBlock>Width</TextBlock>
+                <TextBlock Text="{Binding Width}"/>
+                <TextBlock>Height</TextBlock>
+                <TextBlock Text="{Binding Height}"/>
+            </UniformGrid>
         </StackPanel>
-        
+
         <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
             <TextBlock Text="FPS:" Margin="5,0"/>
             <TextBlock Text="{Binding Renderer.FpsHelper.Fps, Mode=OneWay}" Margin="0,0,10,0"/>
